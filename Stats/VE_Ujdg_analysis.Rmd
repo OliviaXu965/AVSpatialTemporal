@@ -1,0 +1,117 @@
+---
+title: Audiovisual integration across space and time stats analysis
+author: "Jiaming Xu"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include = TRUE, fig.width = 4, fig.height = 4, fig.align = "center")
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+```{r libs,include=FALSE}
+rm(list = ls())
+library(lme4)
+library(car)
+library(lmerTest)
+library(readxl)
+library(effects)
+library(ggplot2)
+library(emmeans)
+library(dplyr)
+library(knitr)
+library(foreign)
+```
+
+**Unity judgment** 
+```{r, include=TRUE}
+# Data cleaning
+setwd("/Users/oliviaxujiaming/Desktop/NYU_research/Project_1/Experiment code/Stats/New")
+unity_indvd_data = read_excel('Ujdg_BimodalLocalization_AV_new.xlsx')
+unity_indvd_data["Ujdg"][unity_indvd_data["Ujdg"]==2] <- 0
+unity_indvd_data <- unity_indvd_data %>%
+  mutate(SpatialD = Vloc - Aloc, SpatialD_abs = abs(SpatialD))
+unity_indvd_data <- subset (unity_indvd_data, select = -c(Aloc,Vloc))
+unity_indvd_data <- unity_indvd_data[,c("Ujdg","TemporalD","SpatialD",
+                                        "SpatialD_abs","Subject")]
+```
+GLMM as ordered factors
+```{r, include=FALSE}
+#unity_indvd_data$SpatialD_abs<-factor(unity_indvd_data$SpatialD_abs, ordered=TRUE) 
+#unity_indvd_data$TemporalD<-factor(unity_indvd_data$TemporalD, ordered=TRUE)
+
+#GLMMmodel_AV <- glmer(Ujdg ~ SpatialD_abs * TemporalD + (1|Subject), 
+#                      data = unity_indvd_data, family='binomial', 
+#                      control = glmerControl(optimizer='bobyqa'))
+#summary(GLMMmodel_AV)
+#Anova(GLMMmodel_AV)
+#confint(GLMMmodel_AV)
+```
+GLMM as numeric factors
+```{r, include=TRUE}
+class(unity_indvd_data$SpatialD_abs) = "Numeric"
+class(unity_indvd_data$TemporalD) = "Numeric"
+
+GLMMmodel_AV1 <- glmer(Ujdg ~ (scale(SpatialD_abs)+scale(SpatialD_abs^2))*
+                         (scale(TemporalD)+scale(TemporalD^2)) +
+                         (1|Subject), 
+                      data = unity_indvd_data, family='binomial', 
+                      control = glmerControl(optimizer='bobyqa'))
+
+summary(GLMMmodel_AV1, corr = FALSE)
+Anova(GLMMmodel_AV1)
+confint(GLMMmodel_AV1)
+```
+
+**Bimodal spatial localization (VE)**
+```{r, include=TRUE}
+# Data cleaning
+setwd("/Users/oliviaxujiaming/Desktop/NYU_research/Project_1/Experiment code/Stats/New")
+rm(list = ls())
+VE_indvd_data <- read_excel("Trial_by_trial_AlocResp_BimodalLocalization_AV_new.xlsx")
+VE_indvd_data <- VE_indvd_data %>%
+  mutate(SpatialD = Vloc - Aloc, SpatialD_abs = abs(SpatialD))
+```
+LMM as ordered factors
+```{r, include=FALSE}
+# VE_indvd_data$SpatialD_abs<-factor(VE_indvd_data$SpatialD_abs, ordered=TRUE) 
+# VE_indvd_data$TemporalD<-factor(VE_indvd_data$TemporalD, ordered=TRUE)
+# VE_indvd_data$Subject<-factor(VE_indvd_data$Subject)
+# 
+# lmer_resultsAV <-lmer(VE_pos~ TemporalD * SpatialD_abs + (1|Subject), 
+#                       data=VE_indvd_data)
+# summary(lmer_resultsAV)
+# Anova(lmer_resultsAV)
+#confint(lmer_resultsAV)
+```
+LMM as numeric factors
+```{r, include=TRUE}
+class(VE_indvd_data$SpatialD_abs) = "Numeric"
+class(VE_indvd_data$TemporalD) = "Numeric"
+class(VE_indvd_data$Subject) = "Numeric"
+class(VE_indvd_data$VE_pos) = "Numeric"
+
+lmer_resultsAV1 <- lmer(VE_pos ~ (scale(SpatialD_abs)+scale(SpatialD_abs^2))*
+                          (scale(TemporalD)+scale(TemporalD^2)) + 
+                          (1|Subject), data=VE_indvd_data)
+
+summary(lmer_resultsAV1,corr = FALSE)
+Anova(lmer_resultsAV1)
+confint(lmer_resultsAV1)
+```
+
+```{r, include=FALSE}
+# #ggplot(data.frame(Effect(c("SpatialD_abs","Condition"),lmer_resultsV)), 
+# #       aes(x=factor(SpatialD_abs, level = c(0,8,16,24)),y=fit,
+# #           color=Condition,group=Condition))+ geom_line()
+# 
+# mean_VE <- group_by(VE_indvd_data, SpatialD_abs, TemporalD) %>%
+#              summarise(VE_pos = mean(VE_pos, na.rm = TRUE))
+# ggplot(na.omit(mean_VE), aes(x=factor(SpatialD_abs, level = c(0,8,16,24)), y=VE_pos, color=TemporalD, group=TemporalD)) + geom_line() 
+# VE_predict <- predict(lmer_resultsAV1)
+# 
+# effect_plot(lmer_resultsAV1, pred = SpatialD_abs)
+```

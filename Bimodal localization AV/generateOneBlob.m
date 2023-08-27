@@ -1,5 +1,5 @@
 %This function takes the locations of centroids, VSinfo and ScreenInfo as inputs
-%and generate a texture of clouds
+%and generate a texture of clouds (loc = blob_coordinates)
 function dotClouds = generateOneBlob(windowPtr,loc,VSinfo,ScreenInfo)
     loc = round(loc);
 
